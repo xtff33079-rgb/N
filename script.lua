@@ -1,3 +1,4 @@
+getgenv().SecureMode = true
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu'))()
 
 local Window = Rayfield:CreateWindow({
