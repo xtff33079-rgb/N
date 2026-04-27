@@ -63,13 +63,14 @@ Section:NewToggle("Auto Cashier", "", function(state)
                 local gui = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
                 if not gui then continue end
 
-                local change = nil
+                local numbers = {}
                 local plusBtn, minusBtn, giveBtn = nil, nil, nil
 
                 for _, v in ipairs(gui:GetDescendants()) do
                     if v:IsA("TextLabel") then
-                        if v.Text:find("Thối") then
-                            change = getNumber(v.Text)
+                        local num = getNumber(v.Text)
+                        if num and num <= 200 then
+                            table.insert(numbers, num)
                         end
                     end
 
@@ -84,7 +85,15 @@ Section:NewToggle("Auto Cashier", "", function(state)
                     end
                 end
 
-                if change and plusBtn and minusBtn then
+                if #numbers >= 2 and plusBtn and minusBtn then
+                    table.sort(numbers)
+
+                    local receive = numbers[1]
+                    local give = numbers[#numbers]
+                    local change = give - receive
+
+                    if change < 0 or change > 200 then continue end
+
                     for i = 1, 30 do
                         click(minusBtn)
                     end
