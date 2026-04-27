@@ -1,107 +1,102 @@
-getgenv().SecureMode = true
-Rayfield = loadstring(game:HttpGet('https://githubusercontent.com'))()
-
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local lp = Players.LocalPlayer
-
-local Window = Rayfield:CreateWindow({
-   Name = "Internet Cafe Tycoon",
-   LoadingTitle = "Fixing Menu...",
-   LoadingSubtitle = "by Hub",
-   ConfigurationSaving = {Enabled = true, FolderName = "NetHubConfig"}
-})
-
-local Main = Window:CreateTab("Main", 4483362458)
-_G.AutoFarm = false
-_G.AutoBuy = false
-
-local function GetMyTycoon()
-    local tycoons = workspace:FindFirstChild("Tycoons")
-    if not tycoons then return nil end
-    for _, tycoon in ipairs(tycoons:GetChildren()) do
-        local owner = tycoon:FindFirstChild("Owner")
-        if owner and (owner.Value == lp.Name or owner.Value == lp) then
-            return tycoon
-        end
+if getgenv().ExecConnections then
+    for _, v in pairs(getgenv().ExecConnections) do
+        pcall(function() v:Disconnect() end)
     end
-    return nil
+end
+getgenv().ExecConnections = {}
+
+for _, v in pairs(game:GetService("CoreGui"):GetChildren()) do
+    if v.Name == "MobileToggle" or v.Name == "Kavo" or v.Name == "Simple Hub VIP" then
+        v:Destroy()
+    end
 end
 
-Main:CreateToggle({
-   Name = "Auto Cashier & Collect",
-   CurrentValue = false,
-   Callback = function(Value)
-      _G.AutoFarm = Value
-      task.spawn(function()
-         local remotes = ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage
-         while _G.AutoFarm do
-            pcall(function()
-               for _, r in ipairs(remotes:GetDescendants()) do
-                  if r:IsA("RemoteEvent") and (r.Name:find("Change") or r.Name:find("Serve") or r.Name:find("Cashier") or r.Name:find("Checkout")) then
-                     r:FireServer()
-                  end
-               end
-               for _, v in ipairs(workspace:GetChildren()) do
-                  if (v.Name == "Cash" or v.Name == "Money") and v:IsA("BasePart") then
-                     v.CFrame = lp.Character.HumanoidRootPart.CFrame
-                  end
-               end
-               local myTycoon = GetMyTycoon()
-               if myTycoon then
-                   for _, v in ipairs(myTycoon:GetDescendants()) do
-                       if v:IsA("ClickDetector") and (v.Parent.Name:find("Register") or v.Parent.Name:find("Cashier")) then
-                           fireclickdetector(v)
-                       end
-                   end
-               end
-            end)
-            task.wait(0.3)
-         end
-      end)
-   end,
-})
+local Library = loadstring(game:HttpGet("https://githubusercontent.com"))()
+local Window = Library.CreateLib("Simple Hub VIP", "Midnight")
 
-Main:CreateToggle({
-   Name = "Auto Buy Buttons",
-   CurrentValue = false,
-   Callback = function(Value)
-      _G.AutoBuy = Value
-      task.spawn(function()
-         while _G.AutoBuy do
-            local myTycoon = GetMyTycoon()
-            if myTycoon then
-                local folder = myTycoon:FindFirstChild("Buttons") or myTycoon:FindFirstChild("Purchases")
-                if folder then
-                    for _, btn in ipairs(folder:GetChildren()) do
-                        local part = btn:FindFirstChild("Head") or btn:FindFirstChild("Part") or btn
-                        if part and part:IsA("BasePart") and part.Transparency == 0 then
-                            firetouchinterest(lp.Character.HumanoidRootPart, part, 0)
-                            firetouchinterest(lp.Character.HumanoidRootPart, part, 1)
+local ScreenGui = Instance.new("ScreenGui")
+local ToggleButton = Instance.new("TextButton")
+local Corner = Instance.new("UICorner")
+
+ScreenGui.Name = "MobileToggle"
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.ResetOnSpawn = false
+
+ToggleButton.Parent = ScreenGui
+ToggleButton.BackgroundColor3 = Color3.fromRGB(30,30,30)
+ToggleButton.Position = UDim2.new(0.05,0,0.2,0)
+ToggleButton.Size = UDim2.new(0,50,0,50)
+ToggleButton.Text = "UI"
+ToggleButton.TextColor3 = Color3.fromRGB(255,255,255)
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.TextSize = 18
+Corner.CornerRadius = UDim.new(0,12)
+Corner.Parent = ToggleButton
+
+ToggleButton.MouseButton1Click:Connect(function()
+    Library:ToggleUI()
+end)
+
+local Main = Window:NewTab("Auto")
+local Section = Main:NewSection("Functions")
+
+getgenv().SmartFarm = false
+getgenv().SmartFarmRunning = false
+
+Section:NewToggle("Smart Farm", "", function(state)
+    getgenv().SmartFarm = state
+    if state and not getgenv().SmartFarmRunning then
+        getgenv().SmartFarmRunning = true
+        task.spawn(function()
+            while true do
+                if not getgenv().SmartFarm then break end
+                task.wait(0.2)
+                local player = game.Players.LocalPlayer
+                local char = player.Character
+                if not char then continue end
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if not hrp then continue end
+                local target, dist = nil, math.huge
+                for _, v in ipairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        local name = v.Name:lower()
+                        if name:find("collect") or name:find("cash") then
+                            local d = (hrp.Position - v.Position).Magnitude
+                            if d < dist and d < 150 then
+                                dist = d
+                                target = v
+                            end
                         end
                     end
                 end
+                if target then
+                    hrp.CFrame = target.CFrame
+                    if firetouchinterest then
+                        firetouchinterest(hrp, target, 0)
+                        task.wait()
+                        firetouchinterest(hrp, target, 1)
+                    end
+                end
             end
-            task.wait(1)
-         end
-      end)
-   end,
-})
-
-local Settings = Window:CreateTab("Settings", 4483362458)
-Settings:CreateSlider({
-   Name = "WalkSpeed",
-   Range = {16, 500},
-   Increment = 1,
-   CurrentValue = 16,
-   Callback = function(Value)
-      if lp.Character and lp.Character:FindFirstChild("Humanoid") then
-          lp.Character.Humanoid.WalkSpeed = Value
-      end
-   end,
-})
-
-lp.Idled:Connect(function()
-   game:GetService("VirtualUser"):CaptureController()
-   game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+            getgenv().SmartFarmRunning = false
+        end)
+    end
 end)
+
+local Player = Window:NewTab("Player")
+local PSection = Player:NewSection("Stats")
+
+getgenv().WS = 16
+PSection:NewSlider("WalkSpeed", "", 250, 16, function(s)
+    getgenv().WS = s
+    if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = s
+    end
+end)
+
+local wsConn = game.Players.LocalPlayer.CharacterAdded:Connect(function(char)
+    local hum = char:WaitForChild("Humanoid")
+    task.wait(0.5)
+    hum.WalkSpeed = getgenv().WS
+end)
+table.insert(getgenv().ExecConnections, wsConn)
