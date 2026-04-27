@@ -42,15 +42,22 @@ local Section = Main:NewSection("Functions")
 
 getgenv().AutoCashier = false
 
+local vim = game:GetService("VirtualInputManager")
+
+local function click(btn)
+    local pos = btn.AbsolutePosition
+    local size = btn.AbsoluteSize
+    local x = pos.X + size.X/2
+    local y = pos.Y + size.Y/2
+    vim:SendMouseButtonEvent(x, y, 0, true, game, 0)
+    vim:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
 local function getNumber(str)
     return tonumber(string.match(str or "", "%d+"))
 end
 
-local function click(btn)
-    pcall(function()
-        btn:Activate()
-    end)
-end
+local busy = false
 
 Section:NewToggle("Auto Cashier", "", function(state)
     getgenv().AutoCashier = state
@@ -58,59 +65,73 @@ Section:NewToggle("Auto Cashier", "", function(state)
     if state then
         task.spawn(function()
             while getgenv().AutoCashier do
-                task.wait(0.1)
+                task.wait(0.2)
+                if busy then continue end
 
-                local gui = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
+                local gui = game.Players.LocalPlayer.PlayerGui
                 if not gui then continue end
 
-                local numbers = {}
-                local plusBtn, minusBtn, giveBtn = nil, nil, nil
+                local cashierUI
+                for _, v in ipairs(gui:GetChildren()) do
+                    if v:IsA("ScreenGui") and v.Enabled then
+                        if v:FindFirstChild("+", true) then
+                            cashierUI = v
+                            break
+                        end
+                    end
+                end
 
-                for _, v in ipairs(gui:GetDescendants()) do
-                    if v:IsA("TextLabel") then
+                if not cashierUI then continue end
+
+                local nums = {}
+                local plusBtn, minusBtn, giveBtn
+
+                for _, v in ipairs(cashierUI:GetDescendants()) do
+                    if v:IsA("TextLabel") or v:IsA("TextButton") then
                         local num = getNumber(v.Text)
                         if num and num <= 200 then
-                            table.insert(numbers, num)
+                            table.insert(nums, num)
                         end
                     end
 
                     if v:IsA("TextButton") then
-                        if v.Text == "+" then
-                            plusBtn = v
-                        elseif v.Text == "-" then
-                            minusBtn = v
-                        elseif v.Text == "Đưa" then
-                            giveBtn = v
-                        end
+                        if v.Text == "+" then plusBtn = v end
+                        if v.Text == "-" then minusBtn = v end
+                        if v.Text:lower():find("đưa") then giveBtn = v end
                     end
                 end
 
-                if #numbers >= 2 and plusBtn and minusBtn then
-                    table.sort(numbers)
+                if #nums < 2 or not plusBtn or not minusBtn then continue end
 
-                    local receive = numbers[1]
-                    local give = numbers[#numbers]
-                    local change = give - receive
+                table.sort(nums)
+                local receive = nums[1]
+                local give = nums[#nums]
+                local change = give - receive
 
-                    if change < 0 or change > 200 then continue end
+                if change < 0 or change > 200 then continue end
 
-                    for i = 1, 30 do
-                        click(minusBtn)
-                    end
+                busy = true
 
-                    task.wait(0.05)
-
-                    for i = 1, change do
-                        click(plusBtn)
-                        task.wait(0.003)
-                    end
-
-                    task.wait(0.05)
-
-                    if giveBtn then
-                        click(giveBtn)
-                    end
+                for i = 1, 20 do
+                    click(minusBtn)
+                    task.wait(0.005)
                 end
+
+                task.wait(0.05)
+
+                for i = 1, change do
+                    click(plusBtn)
+                    task.wait(0.004)
+                end
+
+                task.wait(0.05)
+
+                if giveBtn then
+                    click(giveBtn)
+                end
+
+                task.wait(0.2)
+                busy = false
             end
         end)
     end
