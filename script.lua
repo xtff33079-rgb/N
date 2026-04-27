@@ -11,7 +11,6 @@ for _, v in pairs(game:GetService("CoreGui"):GetChildren()) do
     end
 end
 
--- FIX LINK
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("Simple Hub VIP", "Midnight")
 
@@ -41,53 +40,69 @@ end)
 local Main = Window:NewTab("Auto")
 local Section = Main:NewSection("Functions")
 
-getgenv().SmartFarm = false
-getgenv().SmartFarmRunning = false
+getgenv().AutoCashier = false
 
-Section:NewToggle("Smart Farm", "", function(state)
-    getgenv().SmartFarm = state
+local function getNumber(str)
+    return tonumber(string.match(str or "", "%d+"))
+end
 
-    if state and not getgenv().SmartFarmRunning then
-        getgenv().SmartFarmRunning = true
+local function click(btn)
+    pcall(function()
+        btn:Activate()
+    end)
+end
 
+Section:NewToggle("Auto Cashier", "", function(state)
+    getgenv().AutoCashier = state
+
+    if state then
         task.spawn(function()
-            while true do
-                if not getgenv().SmartFarm then break end
-                task.wait(0.25) -- giảm lag
+            while getgenv().AutoCashier do
+                task.wait(0.1)
 
-                local player = game.Players.LocalPlayer
-                local char = player.Character
-                if not char then continue end
+                local gui = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
+                if not gui then continue end
 
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                if not hrp then continue end
+                local change = nil
+                local plusBtn, minusBtn, giveBtn = nil, nil, nil
 
-                local target, dist = nil, math.huge
+                for _, v in ipairs(gui:GetDescendants()) do
+                    if v:IsA("TextLabel") then
+                        if v.Text:find("Thối") then
+                            change = getNumber(v.Text)
+                        end
+                    end
 
-                for _, v in ipairs(workspace:GetDescendants()) do
-                    if v:IsA("BasePart") then
-                        local name = v.Name:lower()
-                        if name:find("collect") or name:find("cash") then
-                            local d = (hrp.Position - v.Position).Magnitude
-                            if d < dist and d < 120 then -- giảm range
-                                dist = d
-                                target = v
-                            end
+                    if v:IsA("TextButton") then
+                        if v.Text == "+" then
+                            plusBtn = v
+                        elseif v.Text == "-" then
+                            minusBtn = v
+                        elseif v.Text == "Đưa" then
+                            giveBtn = v
                         end
                     end
                 end
 
-                if target then
-                    hrp.CFrame = target.CFrame
-                    if firetouchinterest then
-                        firetouchinterest(hrp, target, 0)
-                        task.wait()
-                        firetouchinterest(hrp, target, 1)
+                if change and plusBtn and minusBtn then
+                    for i = 1, 30 do
+                        click(minusBtn)
+                    end
+
+                    task.wait(0.05)
+
+                    for i = 1, change do
+                        click(plusBtn)
+                        task.wait(0.003)
+                    end
+
+                    task.wait(0.05)
+
+                    if giveBtn then
+                        click(giveBtn)
                     end
                 end
             end
-
-            getgenv().SmartFarmRunning = false
         end)
     end
 end)
@@ -110,7 +125,6 @@ local wsConn = game.Players.LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 table.insert(getgenv().ExecConnections, wsConn)
 
--- GIỮ SPEED LUÔN
 task.spawn(function()
     while true do
         task.wait(1)
