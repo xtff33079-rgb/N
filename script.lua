@@ -11,7 +11,8 @@ for _, v in pairs(game:GetService("CoreGui"):GetChildren()) do
     end
 end
 
-local Library = loadstring(game:HttpGet("https://githubusercontent.com"))()
+-- FIX LINK
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("Simple Hub VIP", "Midnight")
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -45,30 +46,37 @@ getgenv().SmartFarmRunning = false
 
 Section:NewToggle("Smart Farm", "", function(state)
     getgenv().SmartFarm = state
+
     if state and not getgenv().SmartFarmRunning then
         getgenv().SmartFarmRunning = true
+
         task.spawn(function()
             while true do
                 if not getgenv().SmartFarm then break end
-                task.wait(0.2)
+                task.wait(0.25) -- giảm lag
+
                 local player = game.Players.LocalPlayer
                 local char = player.Character
                 if not char then continue end
+
                 local hrp = char:FindFirstChild("HumanoidRootPart")
                 if not hrp then continue end
+
                 local target, dist = nil, math.huge
+
                 for _, v in ipairs(workspace:GetDescendants()) do
                     if v:IsA("BasePart") then
                         local name = v.Name:lower()
                         if name:find("collect") or name:find("cash") then
                             local d = (hrp.Position - v.Position).Magnitude
-                            if d < dist and d < 150 then
+                            if d < dist and d < 120 then -- giảm range
                                 dist = d
                                 target = v
                             end
                         end
                     end
                 end
+
                 if target then
                     hrp.CFrame = target.CFrame
                     if firetouchinterest then
@@ -78,6 +86,7 @@ Section:NewToggle("Smart Farm", "", function(state)
                     end
                 end
             end
+
             getgenv().SmartFarmRunning = false
         end)
     end
@@ -100,3 +109,14 @@ local wsConn = game.Players.LocalPlayer.CharacterAdded:Connect(function(char)
     hum.WalkSpeed = getgenv().WS
 end)
 table.insert(getgenv().ExecConnections, wsConn)
+
+-- GIỮ SPEED LUÔN
+task.spawn(function()
+    while true do
+        task.wait(1)
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = getgenv().WS
+        end
+    end
+end)
